@@ -1,7 +1,11 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SecureAPI.Models;
 using System.Text.RegularExpressions;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -37,15 +41,29 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public IActionResult Login(LoginModel model)
     {
-        var user = users.FirstOrDefault(u => u.AccountNumber == model.Account);
-        if (user == null) return Unauthorized();
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes("SUPER_SECRET_KEY_123");
 
-        var hasher = new PasswordHasher<User>();
-        var result = hasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Expires = DateTime.UtcNow.AddHours(1),
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(key),
+                SecurityAlgorithms.HmacSha256Signature)
+        };
 
-        if (result == PasswordVerificationResult.Failed)
-            return Unauthorized();
+        var token = tokenHandler.CreateToken(tokenDescriptor);
 
-        return Ok("Login successful");
+        return Ok(new
+        {
+            token = tokenHandler.WriteToken(token)
+        });
+    }
+
+    [Authorize]
+    [HttpGet("secure")]
+    public IActionResult SecureEndpoint()
+    {
+        return Ok("You are authorized");
     }
 }
