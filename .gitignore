@@ -1,0 +1,13 @@
+# Visual Studio
+.vs/
+
+# Build folders
+bin/
+obj/
+
+# Node
+node_modules/
+
+# Other
+*.log
+.env
