@@ -1,3 +1,7 @@
+import React from "react";
+import Register from "./Register";
+import Payment from "./Payment";
+
 function App() {
     return (
         <div style={{

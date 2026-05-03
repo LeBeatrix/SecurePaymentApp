@@ -13,17 +13,55 @@ function Payment() {
         const swiftValid = /^[A-Z0-9]{8,11}$/.test(form.swift);
         const accountValid = /^[0-9]{8,20}$/.test(form.beneficiary);
 
-        if (!amountValid) return alert("Invalid amount");
-        if (!swiftValid) return alert("Invalid SWIFT code");
-        if (!accountValid) return alert("Invalid beneficiary account");
+        if (!amountValid) {
+            alert("Invalid amount");
+            return false;
+        }
+
+        if (!swiftValid) {
+            alert("Invalid SWIFT code");
+            return false;
+        }
+
+        if (!accountValid) {
+            alert("Invalid beneficiary account");
+            return false;
+        }
 
         return true;
     };
 
-    const handlePayment = () => {
+    const handlePayment = async () => {
         if (!validate()) return;
 
-        alert("Payment sent securely to processing system");
+        try {
+            // Simulated secure API call (replace later with backend endpoint)
+            const response = await fetch("/api/payment/send", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(form)
+            });
+
+            if (!response.ok) {
+                alert("Payment failed");
+                return;
+            }
+
+            alert("Payment sent securely to processing system");
+
+            setForm({
+                amount: "",
+                currency: "USD",
+                swift: "",
+                beneficiary: ""
+            });
+
+        } catch (error) {
+            console.error(error);
+            alert("Server error - payment not processed");
+        }
     };
 
     return (
@@ -32,24 +70,34 @@ function Payment() {
 
             <input
                 placeholder="Amount"
+                value={form.amount}
                 onChange={e => setForm({ ...form, amount: e.target.value })}
-            /><br />
+            />
+            <br />
 
-            <select onChange={e => setForm({ ...form, currency: e.target.value })}>
-                <option>USD</option>
-                <option>EUR</option>
-                <option>ZAR</option>
-            </select><br />
+            <select
+                value={form.currency}
+                onChange={e => setForm({ ...form, currency: e.target.value })}
+            >
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="ZAR">ZAR</option>
+            </select>
+            <br />
 
             <input
                 placeholder="SWIFT Code"
-                onChange={e => setForm({ ...form, swift: e.target.value })}
-            /><br />
+                value={form.swift}
+                onChange={e => setForm({ ...form, swift: e.target.value.toUpperCase() })}
+            />
+            <br />
 
             <input
                 placeholder="Beneficiary Account"
+                value={form.beneficiary}
                 onChange={e => setForm({ ...form, beneficiary: e.target.value })}
-            /><br />
+            />
+            <br />
 
             <button onClick={handlePayment}>Pay Now</button>
         </div>
