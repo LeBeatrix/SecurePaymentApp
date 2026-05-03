@@ -16,10 +16,12 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public IActionResult Register(User user)
     {
-        if (!Regex.IsMatch(user.Name, @"^[A-Za-z\s]{2,50}$"))
+        if (string.IsNullOrEmpty(user.Name) ||
+            !Regex.IsMatch(user.Name, @"^[A-Za-z\s]{2,50}$"))
             return BadRequest("Invalid name");
 
-        if (!Regex.IsMatch(user.AccountNumber, @"^[0-9]{10,12}$"))
+        if (string.IsNullOrEmpty(user.AccountNumber) ||
+            !Regex.IsMatch(user.AccountNumber, @"^[0-9]{10,12}$"))
             return BadRequest("Invalid account");
 
         if (string.IsNullOrEmpty(user.Password) || user.Password.Length < 8)
@@ -27,11 +29,7 @@ public class AuthController : ControllerBase
 
         var hasher = new PasswordHasher<User>();
 
-        // 🔐 HASH THE ACTUAL PASSWORD
         user.PasswordHash = hasher.HashPassword(user, user.Password);
-
-        // ❗ Remove plain password before saving
-        //user.Password = "";
 
         users.Add(user);
 
