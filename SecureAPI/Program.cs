@@ -4,8 +4,10 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 🔐 JWT KEY
 var key = Encoding.UTF8.GetBytes("SUPER_SECRET_KEY_123");
 
+// 🔐 AUTHENTICATION
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -19,40 +21,11 @@ builder.Services.AddAuthentication("Bearer")
         };
     });
 
-// Add services to the container.
-
+// 📦 SERVICES (ALL BEFORE BUILD)
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.UseHttpsRedirection();
-
-app.Use(async (context, next) =>
-{
-    context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000");
-    context.Response.Headers.Append("X-Frame-Options", "DENY");
-    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-    await next();
-});
 
 builder.Services.AddCors(options =>
 {
@@ -65,6 +38,32 @@ builder.Services.AddCors(options =>
         });
 });
 
+var app = builder.Build();
+
+// 🔧 MIDDLEWARE (ALL AFTER BUILD)
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+// 🔐 Security headers
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    await next();
+});
+
 app.UseCors("AllowReact");
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
 
 app.Run();
