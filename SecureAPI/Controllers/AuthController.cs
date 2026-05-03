@@ -31,7 +31,7 @@ public class AuthController : ControllerBase
         user.PasswordHash = hasher.HashPassword(user, user.Password);
 
         // ❗ Remove plain password before saving
-        user.Password = null;
+        //user.Password = "";
 
         users.Add(user);
 

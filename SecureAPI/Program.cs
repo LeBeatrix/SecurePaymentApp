@@ -48,9 +48,9 @@ app.UseHttpsRedirection();
 
 app.Use(async (context, next) =>
 {
-    context.Response.Headers.Add("Strict-Transport-Security", "max-age=31536000");
-    context.Response.Headers.Add("X-Frame-Options", "DENY");
-    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
     await next();
 });
 
