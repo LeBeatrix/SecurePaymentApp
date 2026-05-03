@@ -1,11 +1,11 @@
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 name: Secure Payment CI
 
 on:
   push:
     branches: [ "main", "master" ]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -13,11 +13,11 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4   # ✅ UPDATED
+      uses: actions/checkout@v4
 
     # 🔧 Backend
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4   # ✅ UPDATED
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
 
@@ -29,9 +29,9 @@ jobs:
 
     # ⚛️ Frontend
     - name: Setup Node
-      uses: actions/setup-node@v4   # ✅ UPDATED
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
 
     - name: Install frontend
       run: |
