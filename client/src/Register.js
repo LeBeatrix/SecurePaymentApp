@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Register() {
     const [form, setForm] = useState({
@@ -7,22 +8,27 @@ function Register() {
         password: ""
     });
 
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
+
+    const navigate = useNavigate();
+
     const validate = () => {
         const nameRegex = /^[A-Za-z\s]{2,50}$/;
         const accountRegex = /^[0-9]{10,12}$/;
 
         if (!nameRegex.test(form.name)) {
-            alert("Invalid name");
+            setMessage("Invalid name");
             return false;
         }
 
         if (!accountRegex.test(form.account)) {
-            alert("Invalid account number");
+            setMessage("Invalid account number");
             return false;
         }
 
         if (form.password.length < 8) {
-            alert("Password must be at least 8 characters");
+            setMessage("Password must be at least 8 characters");
             return false;
         }
 
@@ -35,7 +41,10 @@ function Register() {
         if (!validate()) return;
 
         try {
-            const response = await fetch("/api/auth/register", {
+            setLoading(true);
+            setMessage("");
+
+            const response = await fetch("https://localhost:7028/api/auth/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -47,13 +56,29 @@ function Register() {
                 })
             });
 
+            let data = null;
+            try {
+                data = await response.json();
+            } catch {
+                data = null;
+            }
+
             if (!response.ok) {
-                const msg = await response.text();
-                alert("Error: " + msg);
+                setMessage(data?.message || "Registration failed ❌");
                 return;
             }
 
-            alert("Registration successful!");
+            // 🔐 Store JWT token if backend returns it
+            if (data?.token) {
+                localStorage.setItem("token", data.token);
+            }
+
+            setMessage("Registration successful! Redirecting... ✅");
+
+            // 🔄 Redirect to Payment page after registration
+            setTimeout(() => {
+                navigate("/payment");
+            }, 1000);
 
             setForm({
                 name: "",
@@ -63,7 +88,9 @@ function Register() {
 
         } catch (error) {
             console.error(error);
-            alert("Server not reachable");
+            setMessage("Server not reachable ❌ (check backend)");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -93,7 +120,11 @@ function Register() {
             />
             <br />
 
-            <button type="submit">Register</button>
+            <button type="submit" disabled={loading}>
+                {loading ? "Registering..." : "Register"}
+            </button>
+
+            <p>{message}</p>
         </form>
     );
 }

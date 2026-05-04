@@ -11,3 +11,10 @@ node_modules/
 # Other
 *.log
 .env
+
+# User files
+*.user
+*.suo
+
+# Env / secrets
+appsettings.Development.json

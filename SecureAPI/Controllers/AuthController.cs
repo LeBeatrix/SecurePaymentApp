@@ -1,21 +1,29 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using SecureAPI.Models;
-using System.Text.RegularExpressions;
-using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using SecureAPI.Data;
+using SecureAPI.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
+using System.Text.RegularExpressions;
 
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private static List<User> users = new List<User>();
+    private readonly AppDbContext _context;
+    private readonly IConfiguration _configuration;
+
+    public AuthController(AppDbContext context, IConfiguration configuration)
+    {
+        _context = context;
+        _configuration = configuration;
+    }
 
     // =========================
-    // REGISTER
+    // REGISTER (DB + HASHING)
     // =========================
     [HttpPost("register")]
     public IActionResult Register(User user)
@@ -30,39 +38,45 @@ public class AuthController : ControllerBase
             !Regex.IsMatch(user.AccountNumber, @"^[0-9]{10,12}$"))
             return BadRequest("Invalid account");
 
-        // Validate password strength
+        // Validate password
         if (string.IsNullOrEmpty(user.Password) || user.Password.Length < 8)
             return BadRequest("Weak password");
 
-        // Hash password (secure storage)
+        // 🔍 Check if user already exists
+        if (_context.Users.Any(u => u.AccountNumber == user.AccountNumber))
+            return BadRequest("Account already exists");
+
+        // 🔐 Hash password
         var hasher = new PasswordHasher<User>();
         user.PasswordHash = hasher.HashPassword(user, user.Password);
 
-        // Remove plain password for security
+        // ❌ Do NOT store plain password
         user.Password = null;
 
-        users.Add(user);
+        // 💾 Save to database
+        _context.Users.Add(user);
+        _context.SaveChanges();
 
-        return Ok("User registered successfully");
+        return Ok(new { message = "User registered successfully" });
     }
 
     // =========================
-    // LOGIN (SECURE)
+    // LOGIN (DB + JWT)
     // =========================
     [HttpPost("login")]
     public IActionResult Login(LoginModel model)
     {
-        // Basic null validation
         if (string.IsNullOrEmpty(model?.Account) || string.IsNullOrEmpty(model?.Password))
             return BadRequest("Invalid login data");
 
-        // Find user
-        var user = users.FirstOrDefault(u => u.AccountNumber == model.Account);
+        // 🔍 Find user in DB
+        var user = _context.Users
+            .FirstOrDefault(u => u.AccountNumber == model.Account);
 
         if (user == null || string.IsNullOrEmpty(user.PasswordHash))
             return Unauthorized("Invalid credentials");
 
-        // Verify hashed password
+        // 🔐 Verify password
         var hasher = new PasswordHasher<User>();
 
         var result = hasher.VerifyHashedPassword(
@@ -75,20 +89,28 @@ public class AuthController : ControllerBase
             return Unauthorized("Invalid credentials");
 
         // =========================
-        // JWT TOKEN GENERATION
+        // JWT TOKEN
         // =========================
+        var jwtKey = _configuration["Jwt:Key"];
+        var issuer = _configuration["Jwt:Issuer"];
+        var audience = _configuration["Jwt:Audience"];
+
+        var key = Encoding.UTF8.GetBytes(jwtKey);
+
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes("SUPER_SECRET_KEY_123");
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]
             {
-            new Claim(ClaimTypes.Name, user.Name ?? ""),
-            new Claim(ClaimTypes.NameIdentifier, user.AccountNumber ?? "")
-        }),
+        new Claim(ClaimTypes.Name, user.Name ?? ""),
+        new Claim(ClaimTypes.NameIdentifier, user.AccountNumber ?? "")
+    }),
 
             Expires = DateTime.UtcNow.AddHours(1),
+
+            Issuer = issuer,
+            Audience = audience,
 
             SigningCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(key),
@@ -104,7 +126,7 @@ public class AuthController : ControllerBase
     }
 
     // =========================
-    // PROTECTED ENDPOINT
+    // PROTECTED TEST ENDPOINT
     // =========================
     [Authorize]
     [HttpGet("secure")]

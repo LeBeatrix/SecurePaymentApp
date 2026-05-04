@@ -2,9 +2,11 @@
 {
     public class User
     {
+        public int Id { get; set; } // ✅ PRIMARY KEY (required)
+
         public string? Name { get; set; }
         public string? AccountNumber { get; set; }
-        public string? Password { get; set; } //Plain password for registration, will be hashed before storage
-        public string? PasswordHash { get; set; } //Stored hashed password
+        public string? Password { get; set; }
+        public string? PasswordHash { get; set; }
     }
 }

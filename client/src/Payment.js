@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Payment() {
     const [form, setForm] = useState({
@@ -8,23 +9,36 @@ function Payment() {
         beneficiary: ""
     });
 
+    const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const navigate = useNavigate();
+
+    // 🔐 Extra protection (even if route is bypassed)
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            navigate("/");
+        }
+    }, []);
+
     const validate = () => {
         const amountValid = /^\d+(\.\d{1,2})?$/.test(form.amount);
         const swiftValid = /^[A-Z0-9]{8,11}$/.test(form.swift);
         const accountValid = /^[0-9]{8,20}$/.test(form.beneficiary);
 
         if (!amountValid) {
-            alert("Invalid amount");
+            setMessage("Invalid amount");
             return false;
         }
 
         if (!swiftValid) {
-            alert("Invalid SWIFT code");
+            setMessage("Invalid SWIFT code");
             return false;
         }
 
         if (!accountValid) {
-            alert("Invalid beneficiary account");
+            setMessage("Invalid beneficiary account");
             return false;
         }
 
@@ -35,21 +49,33 @@ function Payment() {
         if (!validate()) return;
 
         try {
-            // Simulated secure API call (replace later with backend endpoint)
-            const response = await fetch("/api/payment/send", {
+            setLoading(true);
+            setMessage("");
+
+            const token = localStorage.getItem("token");
+
+            const response = await fetch("https://localhost:7028/api/payment/send", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}` // 🔐 JWT added
                 },
                 body: JSON.stringify(form)
             });
 
+            let data = null;
+            try {
+                data = await response.json();
+            } catch {
+                data = null;
+            }
+
             if (!response.ok) {
-                alert("Payment failed");
+                setMessage(data?.message || "Payment failed ❌");
                 return;
             }
 
-            alert("Payment sent securely to processing system");
+            setMessage("Payment sent securely for processing ✅");
 
             setForm({
                 amount: "",
@@ -60,7 +86,9 @@ function Payment() {
 
         } catch (error) {
             console.error(error);
-            alert("Server error - payment not processed");
+            setMessage("Server error - payment not processed ❌");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -88,18 +116,26 @@ function Payment() {
             <input
                 placeholder="SWIFT Code"
                 value={form.swift}
-                onChange={e => setForm({ ...form, swift: e.target.value.toUpperCase() })}
+                onChange={e =>
+                    setForm({ ...form, swift: e.target.value.toUpperCase() })
+                }
             />
             <br />
 
             <input
                 placeholder="Beneficiary Account"
                 value={form.beneficiary}
-                onChange={e => setForm({ ...form, beneficiary: e.target.value })}
+                onChange={e =>
+                    setForm({ ...form, beneficiary: e.target.value })
+                }
             />
             <br />
 
-            <button onClick={handlePayment}>Pay Now</button>
+            <button onClick={handlePayment} disabled={loading}>
+                {loading ? "Processing..." : "Pay Now"}
+            </button>
+
+            <p>{message}</p>
         </div>
     );
 }
