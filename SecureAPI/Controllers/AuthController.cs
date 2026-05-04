@@ -52,11 +52,15 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public IActionResult Login(LoginModel model)
     {
+        // Basic null validation
+        if (string.IsNullOrEmpty(model?.Account) || string.IsNullOrEmpty(model?.Password))
+            return BadRequest("Invalid login data");
+
         // Find user
         var user = users.FirstOrDefault(u => u.AccountNumber == model.Account);
 
-        if (user == null)
-            return Unauthorized("User not found");
+        if (user == null || string.IsNullOrEmpty(user.PasswordHash))
+            return Unauthorized("Invalid credentials");
 
         // Verify hashed password
         var hasher = new PasswordHasher<User>();
@@ -68,7 +72,7 @@ public class AuthController : ControllerBase
         );
 
         if (result == PasswordVerificationResult.Failed)
-            return Unauthorized("Invalid password");
+            return Unauthorized("Invalid credentials");
 
         // =========================
         // JWT TOKEN GENERATION
@@ -80,9 +84,9 @@ public class AuthController : ControllerBase
         {
             Subject = new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.NameIdentifier, user.AccountNumber)
-            }),
+            new Claim(ClaimTypes.Name, user.Name ?? ""),
+            new Claim(ClaimTypes.NameIdentifier, user.AccountNumber ?? "")
+        }),
 
             Expires = DateTime.UtcNow.AddHours(1),
 
