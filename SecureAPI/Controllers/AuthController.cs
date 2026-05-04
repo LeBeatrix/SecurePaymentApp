@@ -23,37 +23,39 @@ public class AuthController : ControllerBase
     }
 
     // =========================
-    // REGISTER (DB + HASHING)
+    // REGISTER (DTO + DB + HASHING)
     // =========================
     [HttpPost("register")]
-    public IActionResult Register(User user)
+    public IActionResult Register(RegisterModel model)
     {
         // Validate name
-        if (string.IsNullOrEmpty(user.Name) ||
-            !Regex.IsMatch(user.Name, @"^[A-Za-z\s]{2,50}$"))
+        if (string.IsNullOrEmpty(model.Name) ||
+            !Regex.IsMatch(model.Name, @"^[A-Za-z\s]{2,50}$"))
             return BadRequest("Invalid name");
 
         // Validate account number
-        if (string.IsNullOrEmpty(user.AccountNumber) ||
-            !Regex.IsMatch(user.AccountNumber, @"^[0-9]{10,12}$"))
+        if (string.IsNullOrEmpty(model.AccountNumber) ||
+            !Regex.IsMatch(model.AccountNumber, @"^[0-9]{10,12}$"))
             return BadRequest("Invalid account");
 
         // Validate password
-        if (string.IsNullOrEmpty(user.Password) || user.Password.Length < 8)
+        if (string.IsNullOrEmpty(model.Password) || model.Password.Length < 8)
             return BadRequest("Weak password");
 
-        // 🔍 Check if user already exists
-        if (_context.Users.Any(u => u.AccountNumber == user.AccountNumber))
+        // Check if user exists
+        if (_context.Users.Any(u => u.AccountNumber == model.AccountNumber))
             return BadRequest("Account already exists");
 
-        // 🔐 Hash password
+        var user = new User
+        {
+            Name = model.Name,
+            AccountNumber = model.AccountNumber
+        };
+
+        // Hash password
         var hasher = new PasswordHasher<User>();
-        user.PasswordHash = hasher.HashPassword(user, user.Password);
+        user.PasswordHash = hasher.HashPassword(user, model.Password);
 
-        // ❌ Do NOT store plain password
-        user.Password = null;
-
-        // 💾 Save to database
         _context.Users.Add(user);
         _context.SaveChanges();
 
@@ -61,22 +63,21 @@ public class AuthController : ControllerBase
     }
 
     // =========================
-    // LOGIN (DB + JWT)
+    // LOGIN (DTO + DB + JWT)
     // =========================
     [HttpPost("login")]
     public IActionResult Login(LoginModel model)
     {
-        if (string.IsNullOrEmpty(model?.Account) || string.IsNullOrEmpty(model?.Password))
+        if (string.IsNullOrEmpty(model?.Account) ||
+            string.IsNullOrEmpty(model?.Password))
             return BadRequest("Invalid login data");
 
-        // 🔍 Find user in DB
         var user = _context.Users
             .FirstOrDefault(u => u.AccountNumber == model.Account);
 
         if (user == null || string.IsNullOrEmpty(user.PasswordHash))
             return Unauthorized("Invalid credentials");
 
-        // 🔐 Verify password
         var hasher = new PasswordHasher<User>();
 
         var result = hasher.VerifyHashedPassword(
@@ -91,7 +92,9 @@ public class AuthController : ControllerBase
         // =========================
         // JWT TOKEN
         // =========================
-        var jwtKey = _configuration["Jwt:Key"];
+        var jwtKey = _configuration["Jwt:Key"]
+            ?? throw new Exception("JWT Key missing");
+
         var issuer = _configuration["Jwt:Issuer"];
         var audience = _configuration["Jwt:Audience"];
 
@@ -103,9 +106,9 @@ public class AuthController : ControllerBase
         {
             Subject = new ClaimsIdentity(new[]
             {
-        new Claim(ClaimTypes.Name, user.Name ?? ""),
-        new Claim(ClaimTypes.NameIdentifier, user.AccountNumber ?? "")
-    }),
+                new Claim(ClaimTypes.Name, user.Name ?? ""),
+                new Claim(ClaimTypes.NameIdentifier, user.AccountNumber ?? "")
+            }),
 
             Expires = DateTime.UtcNow.AddHours(1),
 
