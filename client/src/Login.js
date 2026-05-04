@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Register from "./Register";
 
 function Login() {
     const [form, setForm] = useState({ account: "", password: "" });

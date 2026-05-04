@@ -20,7 +20,7 @@ function Payment() {
         if (!token) {
             navigate("/");
         }
-    }, []);
+    }, [navigate]);
 
     const validate = () => {
         const amountValid = /^\d+(\.\d{1,2})?$/.test(form.amount);
