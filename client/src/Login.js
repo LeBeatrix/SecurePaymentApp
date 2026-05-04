@@ -21,35 +21,31 @@ function Login() {
             const res = await fetch("https://localhost:7028/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+
+                // 🔥 FIXED: must match backend LoginModel
                 body: JSON.stringify({
-                    accountNumber: form.account,
+                    account: form.account,
                     password: form.password
                 })
             });
 
-            let data = null;
-            try {
-                data = await res.json();
-            } catch {
-                data = null;
-            }
+            const data = await res.json().catch(() => null);
 
-            if (res.ok) {
-                // 🔐 Store JWT token if returned
-                if (data?.token) {
-                    localStorage.setItem("token", data.token);
-                }
-
-                setMessage("Login successful! Redirecting... ✅");
-
-                // 🚀 Redirect to Payment page
-                setTimeout(() => {
-                    navigate("/payment");
-                }, 800);
-
-            } else {
+            if (!res.ok) {
                 setMessage(data?.message || "Login failed ❌");
+                return;
             }
+
+            // 🔐 store JWT token
+            if (data?.token) {
+                localStorage.setItem("token", data.token);
+            }
+
+            setMessage("Login successful! Redirecting... ✅");
+
+            setTimeout(() => {
+                navigate("/payment");
+            }, 800);
 
         } catch (error) {
             console.error(error);
@@ -89,7 +85,6 @@ function Login() {
             <button onClick={() => navigate("/register")}>
                 Register
             </button>
-
 
             <p>{message}</p>
         </div>
