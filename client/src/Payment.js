@@ -57,10 +57,14 @@ function Payment() {
             const response = await fetch("https://localhost:7028/api/payment/send", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}` // 🔐 JWT added
+                    "Content-Type": "application/json"
                 },
-                body: JSON.stringify(form)
+                body: JSON.stringify({
+                    amount: form.amount,
+                    currency: form.currency,
+                    swiftCode: form.swift,
+                    beneficiaryAccount: form.beneficiary
+                })
             });
 
             let data = null;
