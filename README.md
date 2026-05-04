@@ -3,43 +3,78 @@
 ## 👤 Student Information
 - Name: Lené Prinsloo  
 - Student Number: ST10496124
-- Application Development Security APDS7311
+- Application Development Security (APDS7311)
 
 ---
 
 ## 📌 Overview
-This project is a secure customer international payments portal built using ASP.NET Core and React.
+This project is a secure customer international payments portal built using ASP.NET Core (backend) and React (frontend).
 
-The system allows users to register, log in securely, and simulate international payments, with a strong focus on security principles.
+The system allows users to:
+
+- Register an account
+- Log in securely
+- Simulate international payments
+
+The primary focus of this project is application security, including authentication, input validation, secure password storage, and automated build verification through CI/CD pipelines.
 
 ---
 
 ## 🚀 Features
-- User registration with password hashing  
-- Secure login with JWT authentication  
-- Protected API endpoints using `[Authorize]`  
-- Input validation using regular expressions  
-- Simulated international payment form  
-- CI/CD pipeline using GitHub Actions  
+- User registration with secure password hashing
+- Secure login with JWT authentication
+- Protected API endpoints using [Authorize]
+- Input validation using regular expressions (Regex)
+- Simulated international payment processing
+- CI/CD pipeline using GitHub Actions
 
 ---
 
 ## 🔐 Security
-- Passwords are hashed and salted using `PasswordHasher`  
-- Secure password verification during login  
-- JWT tokens used for authentication and authorization  
-- Input validation prevents invalid or malicious data  
-- Security headers implemented (HSTS, X-Frame-Options, X-Content-Type-Options)  
-- HTTPS enforced for secure communication  
+This application follows key secure development principles:
+
+### 🔑 Password Security
+- Passwords are hashed and salted using PasswordHasher<User>
+- Passwords are never stored in plain text
+- Secure verification is performed during login
+
+### 🔐 Authentication & Authorization
+- JWT (JSON Web Token) authentication is used
+- Tokens are issued upon successful login
+- Protected endpoints require valid authorization headers
+
+###🧾 Input Validation
+- Regex validation is applied to:
+  - Name fields
+  - Account numbers
+  - Payment amounts
+- Prevents malformed or malicious input
+
+### 🌐 Transport Security
+- Application supports HTTPS (TLS encryption)
+- Protects data in transit against interception (Man-in-the-Middle attacks)
+
+### 🛡️ Security Headers
+
+The backend implements security headers such as:
+
+- HSTS (HTTP Strict Transport Security)
+- X-Frame-Options (prevents clickjacking)
+- X-Content-Type-Options (prevents MIME sniffing) 
 
 ---
 
 ## 🤖 Use of AI Tools
-ChatGPT was used for:
-- Research and understanding tools and concepts that were not fully understood  
-- Assistance with resolving CI/CD pipeline and workflow errors  
+The following AI tools were used during development:
+- ChatGPT
+  - Used for research and clarification of unfamiliar security concepts
+  - Assisted in resolving CI/CD pipeline and build workflow errors
+  - Supported debugging of frontend and backend integration issues
 
-All generated content was reviewed, understood, and adapted before implementation.
+All AI-generated suggestions were:
+- Reviewed
+- Understood
+- Adapted before implementation
 
 ---
 
@@ -49,21 +84,33 @@ All generated content was reviewed, understood, and adapted before implementatio
 ```bash
 cd SecureAPI
 dotnet run --launch-profile https
+```
+
+The backend will run on:
+
+- https://localhost:7028
+- http://localhost:5238
 
 ### Frontend
 ```bash
 cd client
 npm install
 npm start
+```
 
 ## 🔄 DevSecOps Pipeline
 
-The project includes a GitHub Actions CI pipeline that:
+This project includes a GitHub Actions CI pipeline that:
 
-- Automatically builds the backend and frontend on each push
-- Detects build errors early
-- Improves reliability and security through automation
+- Automatically builds backend and frontend on every push
+- Detects compilation errors early
+- Ensures code stability and reliability
+- Supports continuous integration best practices
 
-##🎯 Notes
-- This project prioritizes security over UI design
-- All critical functionality (authentication, validation, protection) is implemented in code
+##🎯 Key Notes
+- Security is prioritised over UI/visual design
+- All authentication, validation, and protection mechanisms are implemented in code
+- The system demonstrates core DevSecOps principles in practice
+
+## 📦 Repository
+GitHub: https://github.com/LeBeatrix/SecurePaymentApp/tree/main
