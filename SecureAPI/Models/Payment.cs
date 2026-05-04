@@ -4,15 +4,14 @@ namespace SecureAPI.Models
     {
         public int Id { get; set; }
 
-        public string AccountNumber { get; set; }  // sender (logged-in user)
+        public required string AccountNumber { get; set; }  // sender (logged-in user)
 
         public decimal Amount { get; set; }
 
-        public string Currency { get; set; }
+        public required string Currency { get; set; }
+        public required string SwiftCode { get; set; }
 
-        public string SwiftCode { get; set; }
-
-        public string BeneficiaryAccount { get; set; }
+        public required string BeneficiaryAccount { get; set; }
 
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
