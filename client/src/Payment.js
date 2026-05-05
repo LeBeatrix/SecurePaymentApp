@@ -57,7 +57,8 @@ function Payment() {
             const response = await fetch("https://localhost:7028/api/payment/send", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     amount: form.amount,
