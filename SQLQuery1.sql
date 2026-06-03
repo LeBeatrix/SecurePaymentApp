@@ -1,2 +1,1 @@
-﻿SELECT * FROM Users;
-
+﻿SELECT * FROM Payments;

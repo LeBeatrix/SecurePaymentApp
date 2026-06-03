@@ -3,6 +3,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using SecureAPI.Data;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // =========================
-// JWT CONFIG (SAFE)
+// JWT CONFIG
 // =========================
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new Exception("JWT Key missing in appsettings.json");
@@ -21,7 +23,7 @@ var jwtKey = builder.Configuration["Jwt:Key"]
 var key = Encoding.UTF8.GetBytes(jwtKey);
 
 // =========================
-// AUTHENTICATION (ONLY ONCE)
+// AUTHENTICATION
 // =========================
 builder.Services.AddAuthentication(options =>
 {
@@ -30,7 +32,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // localhost
+    options.RequireHttpsMetadata = false; // Set to true in production
     options.SaveToken = true;
 
     options.TokenValidationParameters = new TokenValidationParameters
@@ -53,26 +55,49 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddAuthorization();
+
 // =========================
-// CORS (React)
+// CORS - REACT FRONTEND
 // =========================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:3000")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
+    options.AddPolicy("AllowReact", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
 });
 
-builder.Services.AddAuthorization();
+// =========================
+// RATE LIMITING
+// =========================
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("fixed", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromSeconds(10);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+});
+
+// =========================
+// HTTPS REDIRECTION
+// =========================
+builder.Services.AddHttpsRedirection(options =>
+{
+    options.HttpsPort = 7028;
+});
 
 var app = builder.Build();
 
 // =========================
-// MIDDLEWARE (ONLY ONCE)
+// DEVELOPMENT TOOLS
 // =========================
 if (app.Environment.IsDevelopment())
 {
@@ -80,18 +105,29 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// =========================
+// SECURITY MIDDLEWARE
+// =========================
 app.UseHttpsRedirection();
 
-// Security headers
 app.Use(async (context, next) =>
 {
-    context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000");
+    context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     context.Response.Headers.Append("X-Frame-Options", "DENY");
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("Referrer-Policy", "no-referrer");
+    context.Response.Headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+    context.Response.Headers.Append("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; object-src 'none';");
+
     await next();
 });
 
+// =========================
+// REQUEST PIPELINE
+// =========================
 app.UseCors("AllowReact");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
