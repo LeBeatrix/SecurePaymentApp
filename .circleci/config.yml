@@ -1,8 +1,5 @@
 version: 2.1
 
-orbs:
-  sonarcloud: sonarsource/sonarcloud@2.0.0
-
 jobs:
   build-and-scan:
     docker:
@@ -12,10 +9,10 @@ jobs:
       - checkout
 
       - run:
-          name: Install Node
+          name: Install Node and Java
           command: |
             apt-get update
-            apt-get install -y curl
+            apt-get install -y curl unzip openjdk-17-jre
             curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
             apt-get install -y nodejs
 
@@ -34,10 +31,24 @@ jobs:
             npm install
             npm run build
 
-      - sonarcloud/scan
+      - run:
+          name: Install SonarScanner
+          command: |
+            dotnet tool install --global dotnet-sonarscanner
+
+      - run:
+          name: Run SonarCloud Scan
+          command: |
+            export PATH="$PATH:/root/.dotnet/tools"
+            dotnet sonarscanner begin \
+              /k:"LeBeatrix_SecurePaymentApp" \
+              /o:"lebeatrix" \
+              /d:sonar.token="$SONAR_TOKEN" \
+              /d:sonar.host.url="https://sonarcloud.io"
+            dotnet build SecureAPI/SecureAPI.csproj --configuration Release
+            dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
 workflows:
   build:
     jobs:
-      - build-and-scan:
-          context: sonarcloud
+      - build-and-scan
