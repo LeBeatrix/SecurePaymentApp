@@ -45,7 +45,8 @@ jobs:
               /o:"lebeatrix" \
               /d:sonar.token="$SONAR_TOKEN" \
               /d:sonar.host.url="https://sonarcloud.io"
-            dotnet build SecureAPI/SecureAPI.csproj --configuration Release
+              /d:sonar.exclusions="**/bin/**,**/obj/**,**/node_modules/**,**/build/**,**/.vs/**"
+              dotnet build SecureAPI/SecureAPI.csproj --configuration Release
             dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
 workflows:
