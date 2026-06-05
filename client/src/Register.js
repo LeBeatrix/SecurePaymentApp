@@ -1,102 +1,75 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Register() {
+    const navigate = useNavigate();
+
     const [form, setForm] = useState({
         name: "",
-        account: "",
+        accountNumber: "",
         password: ""
     });
-
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState("");
-
-    const navigate = useNavigate();
 
     const validate = () => {
         const nameRegex = /^[A-Za-z\s]{2,50}$/;
         const accountRegex = /^[0-9]{10,12}$/;
 
         if (!nameRegex.test(form.name)) {
-            setMessage("Invalid name");
+            alert("Invalid name. Use letters only.");
             return false;
         }
 
-        if (!accountRegex.test(form.account)) {
-            setMessage("Invalid account number");
+        if (!accountRegex.test(form.accountNumber)) {
+            alert("Invalid account number.");
             return false;
         }
 
-        if (form.password.length < 8) {
-            setMessage("Password must be at least 8 characters");
+        if (!form.password || form.password.length < 8) {
+            alert("Password must be at least 8 characters.");
             return false;
         }
 
         return true;
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
+    const register = async () => {
         if (!validate()) return;
 
         try {
-            setLoading(true);
-            setMessage("");
-
-            const response = await fetch("https://localhost:7028/api/auth/register", {
+            const res = await fetch("https://localhost:7028/api/auth/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
                     name: form.name,
-                    accountNumber: form.account,
+                    accountNumber: form.accountNumber,
                     password: form.password
                 })
             });
 
-            let data = null;
-            try {
-                data = await response.json();
-            } catch {
-                data = null;
-            }
-
-            if (!response.ok) {
-                setMessage(data?.message || "Registration failed ❌");
+            if (!res.ok) {
+                const errorText = await res.text();
+                alert("Registration failed: " + errorText);
                 return;
             }
 
-            // 🔐 Store JWT token if backend returns it
-            if (data?.token) {
-                localStorage.setItem("token", data.token);
-            }
-
-            setMessage("Registration successful! Redirecting... ✅");
-
-            // 🔄 Redirect to Payment page after registration
-            setTimeout(() => {
-                navigate("/payment");
-            }, 1000);
-
-            setForm({
-                name: "",
-                account: "",
-                password: ""
-            });
-
-        } catch (error) {
-            console.error(error);
-            setMessage("Server not reachable ❌ (check backend)");
-        } finally {
-            setLoading(false);
+            alert("Customer account created successfully.");
+            navigate("/");
+        }
+        catch (error) {
+            console.error("API connection error:", error);
+            alert("Could not connect to SecureAPI.");
         }
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <h3>Register</h3>
+        <div>
+            <h2>Create Customer Account</h2>
+
+            <p style={{ fontSize: "14px", color: "#555" }}>
+                New customers must register before making international payments.
+            </p>
 
             <input
                 placeholder="Full Name"
@@ -104,12 +77,14 @@ function Register() {
                 onChange={e => setForm({ ...form, name: e.target.value })}
             />
             <br />
+            <br />
 
             <input
                 placeholder="Account Number"
-                value={form.account}
-                onChange={e => setForm({ ...form, account: e.target.value })}
+                value={form.accountNumber}
+                onChange={e => setForm({ ...form, accountNumber: e.target.value })}
             />
+            <br />
             <br />
 
             <input
@@ -119,13 +94,19 @@ function Register() {
                 onChange={e => setForm({ ...form, password: e.target.value })}
             />
             <br />
+            <br />
 
-            <button type="submit" disabled={loading}>
-                {loading ? "Registering..." : "Register"}
+            <button onClick={register}>
+                Create Account
             </button>
 
-            <p>{message}</p>
-        </form>
+            <p style={{ marginTop: "15px" }}>
+                Already registered?{" "}
+                <Link to="/">
+                    Login here
+                </Link>
+            </p>
+        </div>
     );
 }
 

@@ -1,111 +1,84 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 
-function Payment() {
+function Payment({ onLogout }) {
     const [form, setForm] = useState({
         amount: "",
         currency: "USD",
-        swift: "",
-        beneficiary: ""
+        swiftCode: "",
+        beneficiaryAccount: ""
     });
 
-    const [message, setMessage] = useState("");
-    const [loading, setLoading] = useState(false);
-
-    const navigate = useNavigate();
-
-    // 🔐 Extra protection (even if route is bypassed)
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            navigate("/");
-        }
-    }, [navigate]);
-
     const validate = () => {
-        const amountValid = /^\d+(\.\d{1,2})?$/.test(form.amount);
-        const swiftValid = /^[A-Z0-9]{8,11}$/.test(form.swift);
-        const accountValid = /^[0-9]{8,20}$/.test(form.beneficiary);
+        const amountRegex = /^\d+(\.\d{1,2})?$/;
+        const swiftRegex = /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/;
+        const accountRegex = /^[0-9]{8,20}$/;
 
-        if (!amountValid) {
-            setMessage("Invalid amount");
+        if (!amountRegex.test(form.amount) || Number(form.amount) <= 0) {
+            alert("Invalid amount.");
             return false;
         }
 
-        if (!swiftValid) {
-            setMessage("Invalid SWIFT code");
+        if (!swiftRegex.test(form.swiftCode)) {
+            alert("Invalid SWIFT code.");
             return false;
         }
 
-        if (!accountValid) {
-            setMessage("Invalid beneficiary account");
+        if (!accountRegex.test(form.beneficiaryAccount)) {
+            alert("Invalid beneficiary account.");
             return false;
         }
 
         return true;
     };
 
-    const handlePayment = async () => {
+    const submitPayment = async () => {
         if (!validate()) return;
 
+        const token = localStorage.getItem("token");
+
         try {
-            setLoading(true);
-            setMessage("");
-
-            const token = localStorage.getItem("token");
-
-            const response = await fetch("https://localhost:7028/api/payment/send", {
+            const res = await fetch("https://localhost:7028/api/payment/send", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
+                    Authorization: "Bearer " + token
                 },
                 body: JSON.stringify({
-                    amount: form.amount,
+                    amount: Number(form.amount),
                     currency: form.currency,
-                    swiftCode: form.swift,
-                    beneficiaryAccount: form.beneficiary
+                    swiftCode: form.swiftCode,
+                    beneficiaryAccount: form.beneficiaryAccount
                 })
             });
 
-            let data = null;
-            try {
-                data = await response.json();
-            } catch {
-                data = null;
-            }
-
-            if (!response.ok) {
-                setMessage(data?.message || "Payment failed ❌");
+            if (!res.ok) {
+                const errorText = await res.text();
+                alert("Payment failed: " + errorText);
                 return;
             }
 
-            setMessage("Payment sent securely for processing ✅");
-
-            setForm({
-                amount: "",
-                currency: "USD",
-                swift: "",
-                beneficiary: ""
-            });
-
-        } catch (error) {
-            console.error(error);
-            setMessage("Server error - payment not processed ❌");
-        } finally {
-            setLoading(false);
+            alert("Payment submitted successfully.");
+        }
+        catch (error) {
+            console.error("API connection error:", error);
+            alert("Could not connect to SecureAPI.");
         }
     };
 
     return (
         <div>
-            <h3>International Payment</h3>
+            <h2>Make International Payment</h2>
+
+            <p style={{ fontSize: "14px", color: "#555" }}>
+                Enter payment details for employee verification and SWIFT submission.
+            </p>
 
             <input
                 placeholder="Amount"
                 value={form.amount}
                 onChange={e => setForm({ ...form, amount: e.target.value })}
             />
+            <br />
             <br />
 
             <select
@@ -114,33 +87,35 @@ function Payment() {
             >
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
                 <option value="ZAR">ZAR</option>
             </select>
+            <br />
             <br />
 
             <input
                 placeholder="SWIFT Code"
-                value={form.swift}
-                onChange={e =>
-                    setForm({ ...form, swift: e.target.value.toUpperCase() })
-                }
+                value={form.swiftCode}
+                onChange={e => setForm({ ...form, swiftCode: e.target.value.toUpperCase() })}
             />
+            <br />
             <br />
 
             <input
                 placeholder="Beneficiary Account"
-                value={form.beneficiary}
-                onChange={e =>
-                    setForm({ ...form, beneficiary: e.target.value })
-                }
+                value={form.beneficiaryAccount}
+                onChange={e => setForm({ ...form, beneficiaryAccount: e.target.value })}
             />
             <br />
+            <br />
 
-            <button onClick={handlePayment} disabled={loading}>
-                {loading ? "Processing..." : "Pay Now"}
+            <button onClick={submitPayment} style={{ marginRight: "10px" }}>
+                Pay Now
             </button>
 
-            <p>{message}</p>
+            <button onClick={onLogout}>
+                Logout
+            </button>
         </div>
     );
 }
