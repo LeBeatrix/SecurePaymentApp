@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
 
 import Login from "./Login";
@@ -20,20 +20,61 @@ function EmployeeProtectedRoute({ children }) {
 function AppContent() {
     const navigate = useNavigate();
 
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState("");
+
     const customerLoggedIn = localStorage.getItem("token");
     const employeeLoggedIn = localStorage.getItem("employeeToken");
 
+    const showMessage = (text, type) => {
+        setMessage(text);
+        setMessageType(type);
+    };
+
+    const getMessageStyle = () => {
+        if (messageType === "success") {
+            return {
+                backgroundColor: "#d4edda",
+                color: "#155724",
+                border: "1px solid #c3e6cb"
+            };
+        }
+
+        if (messageType === "error") {
+            return {
+                backgroundColor: "#f8d7da",
+                color: "#721c24",
+                border: "1px solid #f5c6cb"
+            };
+        }
+
+        return {
+            backgroundColor: "#d1ecf1",
+            color: "#0c5460",
+            border: "1px solid #bee5eb"
+        };
+    };
+
     const logout = () => {
+        const wasEmployee = !!localStorage.getItem("employeeToken");
+
         localStorage.removeItem("token");
         localStorage.removeItem("employeeToken");
 
-        if (employeeLoggedIn) {
-            navigate("/employee-login");
-        } else {
-            navigate("/");
-        }
+        showMessage(
+            "You have been logged out successfully.",
+            "success"
+        );
 
-        window.location.reload();
+        setTimeout(() => {
+            if (wasEmployee) {
+                navigate("/employee-login");
+            } else {
+                navigate("/");
+            }
+
+            window.location.reload();
+        }, 800);
     };
 
     return (
@@ -47,6 +88,19 @@ function AppContent() {
             textAlign: "center"
         }}>
             <h1>🌍 International Payments System</h1>
+
+            {message && (
+                <div
+                    style={{
+                        ...getMessageStyle(),
+                        padding: "10px",
+                        marginBottom: "15px",
+                        borderRadius: "5px"
+                    }}
+                >
+                    {message}
+                </div>
+            )}
 
             <nav style={{ marginBottom: "20px" }}>
                 {!customerLoggedIn && !employeeLoggedIn && (
@@ -65,11 +119,16 @@ function AppContent() {
                     </>
                 )}
 
-                {customerLoggedIn && !employeeLoggedIn}
+                {customerLoggedIn && !employeeLoggedIn && (
+                    <Link to="/payment">
+                        Make Payment
+                    </Link>
+                )}
             </nav>
 
             <Routes>
                 <Route path="/" element={<Login />} />
+
                 <Route path="/register" element={<Register />} />
 
                 <Route

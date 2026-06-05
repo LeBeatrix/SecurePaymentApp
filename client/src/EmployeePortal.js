@@ -2,21 +2,61 @@ import React, { useEffect, useCallback, useState } from "react";
 
 function EmployeePortal({ onLogout }) {
     const [payments, setPayments] = useState([]);
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState("");
+    const [processingId, setProcessingId] = useState(null);
 
     const token = localStorage.getItem("employeeToken");
 
+    const showMessage = (text, type) => {
+        setMessage(text);
+        setMessageType(type);
+    };
+
+    const getMessageStyle = () => {
+        if (messageType === "success") {
+            return {
+                backgroundColor: "#d4edda",
+                color: "#155724",
+                border: "1px solid #c3e6cb"
+            };
+        }
+
+        if (messageType === "error") {
+            return {
+                backgroundColor: "#f8d7da",
+                color: "#721c24",
+                border: "1px solid #f5c6cb"
+            };
+        }
+
+        return {
+            backgroundColor: "#d1ecf1",
+            color: "#0c5460",
+            border: "1px solid #bee5eb"
+        };
+    };
+
     const loadPayments = useCallback(async () => {
         try {
-            const res = await fetch("https://localhost:7028/api/payment/pending", {
-                headers: {
-                    Authorization: "Bearer " + token
+            const res = await fetch(
+                "https://localhost:7028/api/payment/pending",
+                {
+                    headers: {
+                        Authorization: "Bearer " + token
+                    }
                 }
-            });
+            );
 
             if (!res.ok) {
                 const errorText = await res.text();
-                console.error("Failed to load payments:", errorText);
-                alert("Failed to load payments: " + errorText);
+
+                showMessage(
+                    "Unable to load pending payments.",
+                    "error"
+                );
+
+                console.error(errorText);
                 return;
             }
 
@@ -24,56 +64,114 @@ function EmployeePortal({ onLogout }) {
             setPayments(data);
         }
         catch (error) {
-            console.error("API connection error:", error);
-            alert("Could not connect to SecureAPI.");
+            console.error(error);
+
+            showMessage(
+                "Could not connect to SecureAPI.",
+                "error"
+            );
         }
     }, [token]);
 
     const verifyPayment = async (id) => {
+        setProcessingId(id);
+
         try {
-            const res = await fetch(`https://localhost:7028/api/payment/${id}/verify`, {
-                method: "PATCH",
-                headers: {
-                    Authorization: "Bearer " + token
+            showMessage(
+                "Verifying payment...",
+                "info"
+            );
+
+            const res = await fetch(
+                `https://localhost:7028/api/payment/${id}/verify`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        Authorization: "Bearer " + token
+                    }
                 }
-            });
+            );
 
             if (!res.ok) {
                 const errorText = await res.text();
-                alert("Verification failed: " + errorText);
+
+                showMessage(
+                    "Payment verification failed.",
+                    "error"
+                );
+
+                console.error(errorText);
                 return;
             }
 
-            alert("Payment verified successfully.");
+            showMessage(
+                "Payment verified successfully.",
+                "success"
+            );
+
             loadPayments();
         }
         catch (error) {
-            console.error("Verification error:", error);
-            alert("Could not verify payment.");
+            console.error(error);
+
+            showMessage(
+                "Could not verify payment.",
+                "error"
+            );
+        }
+        finally {
+            setProcessingId(null);
         }
     };
 
     const submitToSwift = async (id) => {
+        setProcessingId(id);
+
         try {
-            const res = await fetch(`https://localhost:7028/api/payment/${id}/submit-swift`, {
-                method: "POST",
-                headers: {
-                    Authorization: "Bearer " + token
+            showMessage(
+                "Submitting payment to SWIFT...",
+                "info"
+            );
+
+            const res = await fetch(
+                `https://localhost:7028/api/payment/${id}/submit-swift`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: "Bearer " + token
+                    }
                 }
-            });
+            );
 
             if (!res.ok) {
                 const errorText = await res.text();
-                alert("Submit to SWIFT failed: " + errorText);
+
+                showMessage(
+                    "SWIFT submission failed.",
+                    "error"
+                );
+
+                console.error(errorText);
                 return;
             }
 
-            alert("Payment submitted to SWIFT successfully.");
+            showMessage(
+                "Payment submitted to SWIFT successfully.",
+                "success"
+            );
+
             loadPayments();
         }
         catch (error) {
-            console.error("Submit to SWIFT error:", error);
-            alert("Could not submit payment to SWIFT.");
+            console.error(error);
+
+            showMessage(
+                "Could not submit payment to SWIFT.",
+                "error"
+            );
+        }
+        finally {
+            setProcessingId(null);
         }
     };
 
@@ -89,7 +187,22 @@ function EmployeePortal({ onLogout }) {
                 Review pending payments, verify account details, and submit verified payments to SWIFT.
             </p>
 
-            {payments.length === 0 && <p>No pending payments found.</p>}
+            {message && (
+                <div
+                    style={{
+                        ...getMessageStyle(),
+                        padding: "10px",
+                        marginBottom: "15px",
+                        borderRadius: "5px"
+                    }}
+                >
+                    {message}
+                </div>
+            )}
+
+            {payments.length === 0 && (
+                <p>No pending payments found.</p>
+            )}
 
             {payments.map(payment => (
                 <div
@@ -101,29 +214,56 @@ function EmployeePortal({ onLogout }) {
                         borderRadius: "6px"
                     }}
                 >
-                    <p><strong>Amount:</strong> {payment.amount}</p>
-                    <p><strong>Currency:</strong> {payment.currency}</p>
-                    <p><strong>Beneficiary Account:</strong> {payment.beneficiaryAccount}</p>
-                    <p><strong>SWIFT Code:</strong> {payment.swiftCode}</p>
-                    <p><strong>Status:</strong> {payment.status}</p>
+                    <p>
+                        <strong>Amount:</strong> {payment.amount}
+                    </p>
+
+                    <p>
+                        <strong>Currency:</strong> {payment.currency}
+                    </p>
+
+                    <p>
+                        <strong>Beneficiary Account:</strong> {payment.beneficiaryAccount}
+                    </p>
+
+                    <p>
+                        <strong>SWIFT Code:</strong> {payment.swiftCode}
+                    </p>
+
+                    <p>
+                        <strong>Status:</strong> {payment.status}
+                    </p>
 
                     {payment.verifiedBy && (
-                        <p><strong>Verified By:</strong> {payment.verifiedBy}</p>
+                        <p>
+                            <strong>Verified By:</strong> {payment.verifiedBy}
+                        </p>
                     )}
 
                     <button
                         onClick={() => verifyPayment(payment.id)}
-                        disabled={payment.status === "Verified" || payment.status === "Submitted to SWIFT"}
+                        disabled={
+                            processingId === payment.id ||
+                            payment.status === "Verified" ||
+                            payment.status === "Submitted to SWIFT"
+                        }
                         style={{ marginRight: "10px" }}
                     >
-                        Verify
+                        {processingId === payment.id
+                            ? "Verifying..."
+                            : "Verify"}
                     </button>
 
                     <button
                         onClick={() => submitToSwift(payment.id)}
-                        disabled={payment.status !== "Verified"}
+                        disabled={
+                            processingId === payment.id ||
+                            payment.status !== "Verified"
+                        }
                     >
-                        Submit to SWIFT
+                        {processingId === payment.id
+                            ? "Submitting..."
+                            : "Submit to SWIFT"}
                     </button>
                 </div>
             ))}

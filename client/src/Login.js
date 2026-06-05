@@ -9,18 +9,62 @@ function Login() {
         password: ""
     });
 
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
+    const showMessage = (text, type) => {
+        setMessage(text);
+        setMessageType(type);
+    };
+
+    const getMessageStyle = () => {
+        if (messageType === "success") {
+            return {
+                backgroundColor: "#d4edda",
+                color: "#155724",
+                border: "1px solid #c3e6cb"
+            };
+        }
+
+        if (messageType === "error") {
+            return {
+                backgroundColor: "#f8d7da",
+                color: "#721c24",
+                border: "1px solid #f5c6cb"
+            };
+        }
+
+        return {
+            backgroundColor: "#d1ecf1",
+            color: "#0c5460",
+            border: "1px solid #bee5eb"
+        };
+    };
+
     const login = async () => {
+        setMessage("");
+
         const accountRegex = /^[0-9]{10,12}$/;
 
         if (!accountRegex.test(form.accountNumber)) {
-            alert("Invalid account number.");
+            showMessage(
+                "Invalid account number. Please enter a valid 10–12 digit account number.",
+                "error"
+            );
             return;
         }
 
         if (!form.password || form.password.length < 8) {
-            alert("Invalid password.");
+            showMessage(
+                "Invalid password. Password must contain at least 8 characters.",
+                "error"
+            );
             return;
         }
+
+        setIsLoading(true);
+        showMessage("Authenticating customer...", "info");
 
         try {
             const res = await fetch("https://localhost:7028/api/auth/login", {
@@ -36,30 +80,49 @@ function Login() {
 
             if (!res.ok) {
                 const errorText = await res.text();
+
                 console.error("Customer login failed:", errorText);
-                alert("Customer login failed: " + errorText);
+
+                showMessage(
+                    "Invalid account number or password.",
+                    "error"
+                );
+
                 return;
             }
 
             const data = await res.json();
 
             if (!data.token) {
-                alert("Login succeeded, but no token was returned.");
+                showMessage(
+                    "Authentication failed. No token was returned.",
+                    "error"
+                );
+
                 return;
             }
 
             localStorage.setItem("token", data.token);
 
-            alert("Customer login successful");
+            showMessage(
+                "Login successful. Redirecting to payment portal...",
+                "success"
+            );
 
-            navigate("/payment");
+            setTimeout(() => {
+                navigate("/payment");
+            }, 1000);
         }
         catch (error) {
             console.error("API connection error:", error);
 
-            alert(
-                "Could not connect to SecureAPI. Ensure the API is running on https://localhost:7028"
+            showMessage(
+                "Could not connect to SecureAPI. Please ensure the backend is running.",
+                "error"
             );
+        }
+        finally {
+            setIsLoading(false);
         }
     };
 
@@ -71,10 +134,24 @@ function Login() {
                 Registered customers can log in to create international payments.
             </p>
 
+            {message && (
+                <div
+                    style={{
+                        ...getMessageStyle(),
+                        padding: "10px",
+                        marginBottom: "15px",
+                        borderRadius: "5px"
+                    }}
+                >
+                    {message}
+                </div>
+            )}
+
             <input
                 type="text"
                 placeholder="Account Number"
                 value={form.accountNumber}
+                disabled={isLoading}
                 onChange={(e) =>
                     setForm({
                         ...form,
@@ -90,6 +167,7 @@ function Login() {
                 type="password"
                 placeholder="Password"
                 value={form.password}
+                disabled={isLoading}
                 onChange={(e) =>
                     setForm({
                         ...form,
@@ -101,8 +179,11 @@ function Login() {
             <br />
             <br />
 
-            <button onClick={login}>
-                Login
+            <button
+                onClick={login}
+                disabled={isLoading}
+            >
+                {isLoading ? "Authenticating..." : "Login"}
             </button>
 
             <p style={{ marginTop: "15px" }}>

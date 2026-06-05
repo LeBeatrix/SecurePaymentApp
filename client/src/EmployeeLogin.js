@@ -9,56 +9,139 @@ function EmployeeLogin({ onLogin }) {
         password: ""
     });
 
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
+    const showMessage = (text, type) => {
+        setMessage(text);
+        setMessageType(type);
+    };
+
+    const getMessageStyle = () => {
+        if (messageType === "success") {
+            return {
+                backgroundColor: "#d4edda",
+                color: "#155724",
+                border: "1px solid #c3e6cb"
+            };
+        }
+
+        if (messageType === "error") {
+            return {
+                backgroundColor: "#f8d7da",
+                color: "#721c24",
+                border: "1px solid #f5c6cb"
+            };
+        }
+
+        return {
+            backgroundColor: "#d1ecf1",
+            color: "#0c5460",
+            border: "1px solid #bee5eb"
+        };
+    };
+
     const login = async () => {
+        setMessage("");
+
         const usernameRegex = /^[A-Za-z0-9]{3,30}$/;
 
         if (!usernameRegex.test(form.username)) {
-            alert("Invalid username. Use letters and numbers only.");
+            showMessage(
+                "Invalid username. Use letters and numbers only.",
+                "error"
+            );
             return;
         }
 
         if (!form.password || form.password.length < 8) {
-            alert("Invalid password.");
+            showMessage(
+                "Invalid password. Password must contain at least 8 characters.",
+                "error"
+            );
             return;
         }
 
+        setIsLoading(true);
+        showMessage(
+            "Authenticating employee...",
+            "info"
+        );
+
         try {
-            const res = await fetch("https://localhost:7028/api/employee/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    username: form.username,
-                    password: form.password
-                })
-            });
+            const res = await fetch(
+                "https://localhost:7028/api/employee/login",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        username: form.username,
+                        password: form.password
+                    })
+                }
+            );
 
             if (!res.ok) {
                 const errorText = await res.text();
-                console.error("Employee login failed:", errorText);
-                alert("Employee login failed: " + errorText);
+
+                console.error(
+                    "Employee login failed:",
+                    errorText
+                );
+
+                showMessage(
+                    "Invalid employee credentials.",
+                    "error"
+                );
+
                 return;
             }
 
             const data = await res.json();
 
             if (!data.token) {
-                alert("Login succeeded, but no token was returned.");
+                showMessage(
+                    "Authentication failed. No token was returned.",
+                    "error"
+                );
+
                 return;
             }
 
-            localStorage.setItem("employeeToken", data.token);
+            localStorage.setItem(
+                "employeeToken",
+                data.token
+            );
 
             if (onLogin) {
                 onLogin();
             }
 
-            alert("Employee login successful");
-            navigate("/employee-portal");
-        } catch (error) {
-            console.error("API connection error:", error);
-            alert("Could not connect to backend API. Check that SecureAPI is running on https://localhost:7028");
+            showMessage(
+                "Employee authenticated successfully. Redirecting to employee portal...",
+                "success"
+            );
+
+            setTimeout(() => {
+                navigate("/employee-portal");
+            }, 1000);
+        }
+        catch (error) {
+            console.error(
+                "API connection error:",
+                error
+            );
+
+            showMessage(
+                "Could not connect to SecureAPI. Please ensure the backend is running.",
+                "error"
+            );
+        }
+        finally {
+            setIsLoading(false);
         }
     };
 
@@ -70,22 +153,56 @@ function EmployeeLogin({ onLogin }) {
                 Pre-registered employees only. No registration is available.
             </p>
 
+            {message && (
+                <div
+                    style={{
+                        ...getMessageStyle(),
+                        padding: "10px",
+                        marginBottom: "15px",
+                        borderRadius: "5px"
+                    }}
+                >
+                    {message}
+                </div>
+            )}
+
             <input
                 placeholder="Username"
                 value={form.username}
-                onChange={e => setForm({ ...form, username: e.target.value })}
+                disabled={isLoading}
+                onChange={e =>
+                    setForm({
+                        ...form,
+                        username: e.target.value
+                    })
+                }
             />
+
+            <br />
             <br />
 
             <input
                 type="password"
                 placeholder="Password"
                 value={form.password}
-                onChange={e => setForm({ ...form, password: e.target.value })}
+                disabled={isLoading}
+                onChange={e =>
+                    setForm({
+                        ...form,
+                        password: e.target.value
+                    })
+                }
             />
+
+            <br />
             <br />
 
-            <button onClick={login}>Login</button>
+            <button
+                onClick={login}
+                disabled={isLoading}
+            >
+                {isLoading ? "Authenticating..." : "Login"}
+            </button>
         </div>
     );
 }
