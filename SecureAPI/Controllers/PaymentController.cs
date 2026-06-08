@@ -5,6 +5,8 @@ using SecureAPI.Models;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
+namespace SecureAPI.Controllers;    
+
 [ApiController]
 [Route("api/[controller]")]
 public class PaymentController : ControllerBase

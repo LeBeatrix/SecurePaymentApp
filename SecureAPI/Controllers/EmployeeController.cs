@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SecureAPI.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
+
+namespace SecureAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -53,7 +54,12 @@ public class EmployeeController : ControllerBase
             return BadRequest("Login data is required");
 
         if (string.IsNullOrWhiteSpace(model.Username) ||
-            !Regex.IsMatch(model.Username, @"^[A-Za-z0-9]{3,30}$"))
+            !Regex.IsMatch(
+                model.Username,
+                @"^[A-Za-z0-9]{3,30}$",
+                RegexOptions.None,
+                TimeSpan.FromMilliseconds(100)
+            ))
             return BadRequest("Invalid username");
 
         if (string.IsNullOrWhiteSpace(model.Password))
@@ -74,8 +80,10 @@ public class EmployeeController : ControllerBase
         if (result == PasswordVerificationResult.Failed)
             return Unauthorized("Invalid login");
 
-        var jwtKey = _configuration["Jwt:Key"]
-            ?? throw new Exception("JWT Key missing in appsettings.json");
+        var jwtKey = _configuration["Jwt:Key"];
+
+        if (string.IsNullOrWhiteSpace(jwtKey))
+            return StatusCode(500, "JWT key is missing in appsettings.json");
 
         var issuer = _configuration["Jwt:Issuer"];
         var audience = _configuration["Jwt:Audience"];

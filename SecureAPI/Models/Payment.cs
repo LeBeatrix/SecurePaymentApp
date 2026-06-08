@@ -5,7 +5,7 @@ namespace SecureAPI.Models
         public int Id { get; set; }
 
         // Customer account making the payment
-        public required string AccountNumber { get; set; }
+        public string AccountNumber { get; set; } = string.Empty;
 
         // Payment details
         public decimal Amount { get; set; }

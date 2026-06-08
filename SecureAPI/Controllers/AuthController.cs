@@ -9,6 +9,8 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
 
+namespace SecureAPI.Controllers;    
+
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
