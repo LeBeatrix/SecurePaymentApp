@@ -5,7 +5,7 @@ using SecureAPI.Models;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
-namespace SecureAPI.Controllers;    
+namespace SecureAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -25,19 +25,37 @@ public class PaymentController : ControllerBase
     [HttpPost("send")]
     public IActionResult SendPayment([FromBody] Payment model)
     {
+        if (model == null)
+            return BadRequest("Payment data is required");
+
         if (model.Amount <= 0)
             return BadRequest("Invalid amount");
 
         if (string.IsNullOrWhiteSpace(model.Currency) ||
-            !Regex.IsMatch(model.Currency, @"^[A-Z]{3}$"))
+            !Regex.IsMatch(
+                model.Currency,
+                @"^[A-Z]{3}$",
+                RegexOptions.None,
+                TimeSpan.FromMilliseconds(100)
+            ))
             return BadRequest("Invalid currency");
 
         if (string.IsNullOrWhiteSpace(model.SwiftCode) ||
-            !Regex.IsMatch(model.SwiftCode, @"^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$"))
+            !Regex.IsMatch(
+                model.SwiftCode,
+                @"^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$",
+                RegexOptions.None,
+                TimeSpan.FromMilliseconds(100)
+            ))
             return BadRequest("Invalid SWIFT code");
 
         if (string.IsNullOrWhiteSpace(model.BeneficiaryAccount) ||
-            !Regex.IsMatch(model.BeneficiaryAccount, @"^[0-9]{8,20}$"))
+            !Regex.IsMatch(
+                model.BeneficiaryAccount,
+                @"^[0-9]{8,20}$",
+                RegexOptions.None,
+                TimeSpan.FromMilliseconds(100)
+            ))
             return BadRequest("Invalid beneficiary account");
 
         var account = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -50,8 +68,8 @@ public class PaymentController : ControllerBase
         {
             AccountNumber = account,
             Amount = model.Amount,
-            Currency = model.Currency.ToUpper(),
-            SwiftCode = model.SwiftCode.ToUpper(),
+            Currency = model.Currency.ToUpperInvariant(),
+            SwiftCode = model.SwiftCode.ToUpperInvariant(),
             BeneficiaryAccount = model.BeneficiaryAccount,
             Status = "Pending",
             IsVerified = false,
@@ -99,10 +117,22 @@ public class PaymentController : ControllerBase
         if (payment.Status == "Submitted to SWIFT")
             return BadRequest("Payment has already been submitted to SWIFT");
 
-        if (!Regex.IsMatch(payment.SwiftCode, @"^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$"))
+        if (string.IsNullOrWhiteSpace(payment.SwiftCode) ||
+            !Regex.IsMatch(
+                payment.SwiftCode,
+                @"^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$",
+                RegexOptions.None,
+                TimeSpan.FromMilliseconds(100)
+            ))
             return BadRequest("Stored SWIFT code is invalid");
 
-        if (!Regex.IsMatch(payment.BeneficiaryAccount, @"^[0-9]{8,20}$"))
+        if (string.IsNullOrWhiteSpace(payment.BeneficiaryAccount) ||
+            !Regex.IsMatch(
+                payment.BeneficiaryAccount,
+                @"^[0-9]{8,20}$",
+                RegexOptions.None,
+                TimeSpan.FromMilliseconds(100)
+            ))
             return BadRequest("Stored beneficiary account is invalid");
 
         var employeeName = User.FindFirst(ClaimTypes.Name)?.Value ?? "Employee";
