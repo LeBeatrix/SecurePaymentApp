@@ -18,7 +18,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // JWT CONFIG
 // =========================
 var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new Exception("JWT Key missing in appsettings.json");
+    ?? throw new InvalidOperationException("JWT Key missing in appsettings.json");
 
 var key = Encoding.UTF8.GetBytes(jwtKey);
 

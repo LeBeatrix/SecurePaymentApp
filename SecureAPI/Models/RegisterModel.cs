@@ -1,3 +1,5 @@
+namespace SecureAPI.Models;
+
 public class RegisterModel
 {
     public required string Name { get; set; }
